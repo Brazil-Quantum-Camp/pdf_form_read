@@ -72,6 +72,8 @@ def read_questions(question: str, response: str):
             return question_number(question), None
     elif "code" in question:
         return question_number(question), (validate_py(response), response)
+    elif "str" in question:
+        return question_number(question), response.strip()
     else:
         raise ValueError(f"Unknown question type {question}")
 
@@ -100,7 +102,7 @@ def dict_to_table(dados: dict) -> pd.DataFrame:
     return pd.DataFrame(line)
 
 
-def verificar_pdf(upload_widget):
+def _verificar_pdf(upload_widget):
     try:
         value = upload_widget.value
 
@@ -123,3 +125,56 @@ def verificar_pdf(upload_widget):
             "e não gerado por meio de impressão virtual.\n"
         )
         print(f"Erro: {e}")
+
+
+def _verificar_pdf_raw(upload_widget):
+    try:
+        value = upload_widget.value
+
+        # ipywidgets 7 → dict
+        if isinstance(value, dict):
+            file_info = next(iter(value.values()))
+        # ipywidgets 8 → tuple
+        else:
+            file_info = value[0]
+
+        file_bytes = file_info["content"]
+        file = BytesIO(file_bytes)
+
+        return read_row_fields(file)
+
+    except Exception as e:
+        print(
+            "Não foi possível processar o arquivo PDF.\n"
+            "Certifique-se de que o arquivo enviado está correto e que o documento foi salvo,\n"
+            "e não gerado por meio de impressão virtual.\n"
+        )
+        print(f"Erro: {e}")
+
+
+def verificar_pdf():
+    import ipywidgets as widgets
+    from IPython.display import display
+
+    upload_pdf = widgets.FileUpload(accept=".pdf", multiple=False)
+
+    def on_upload_change(change):
+        if change["name"] == "value" and change["new"]:
+            display(_verificar_pdf(upload_pdf))
+
+    upload_pdf.observe(on_upload_change, names="value")
+    return upload_pdf
+
+
+def verificar_pdf_raw():
+    import ipywidgets as widgets
+    from IPython.display import display
+
+    upload_pdf = widgets.FileUpload(accept=".pdf", multiple=False)
+
+    def on_upload_change(change):
+        if change["name"] == "value" and change["new"]:
+            display(_verificar_pdf_raw(upload_pdf))
+
+    upload_pdf.observe(on_upload_change, names="value")
+    return upload_pdf
